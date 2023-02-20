@@ -1,16 +1,25 @@
 script_name("Text Repeater")
 script_author("Bear")
-script_version("0.1.0")
+script_version("0.1.1")
 
+local sampev = require "lib.samp.events"
 
 local loops = {}
 
-local isStopMessageNeeded = false
+local isStopMessageNeeded, isPlayerMuted = false, false
 
+function sampev.onServerMessage(_, msg_text)
+	-- Mute detection feature, only working in HZRP
+	if
+	string.find(sampGetCurrentServerName(), "Horizon Roleplay")
+	and string.sub(msg_text, 1, 48) == "You have been muted automatically for spamming. " then
+		isPlayerMuted = true
+	end
+end
 
 function main()	
 	while not isSampAvailable() do wait(50) end
-	sampAddChatMessage("{AAAAFF}Text Repeater {FFFFFF}| Start: {AAAAFF}/repeat (# of times) (frequency in seconds) (text) {FFFFFF}| Stop: {AAAAFF}/stoprepeat", -1)
+	sampAddChatMessage("--- {AAAAFF}Text Repeater {FFFFFF}| Start: {AAAAFF}/repeat (# of times) (frequency in seconds) (text) {FFFFFF}| Stop: {AAAAFF}/stoprepeat", -1)
 	
 	sampRegisterChatCommand("repeat", function(args)
 		if #args == 0 or not args:find("[^%s]") then
@@ -22,7 +31,7 @@ function main()
 			
 			if tonumber(repCount) < 1 then
 				sampAddChatMessage(" ", -1)
-				sampAddChatMessage("--- {FF6666}Invalid Entry {FFFFFF}| Repetition count must be 1 or greater", -1)
+				sampAddChatMessage("{FF6666}Invalid Entry {FFFFFF}| Repetition count must be 1 or greater", -1)
 				sampAddChatMessage("{AAAAFF}Usage: {FFFFFF}/repeat (# of times) (frequency in seconds) (text)", -1)
 				sampAddChatMessage(" ", -1)
 			else
@@ -36,7 +45,7 @@ function main()
 			end
 		else
 			sampAddChatMessage(" ", -1)
-			sampAddChatMessage("--- {FF6666}Invalid Entry", -1)
+			sampAddChatMessage("{FF6666}Invalid Entry", -1)
 			sampAddChatMessage("{AAAAFF}Usage: {FFFFFF}/repeat (# of times) (frequency in seconds) (text)", -1)
 			sampAddChatMessage(" ", -1)
 		end
@@ -48,6 +57,13 @@ function main()
 		end
 		
 		isStopMessageNeeded = true
+	end)
+	
+	lua_thread.create(function()
+		while true do
+			wait(200)
+			if isPlayerMuted then wait(13000) isPlayerMuted = false end
+		end
 	end)
 	
 	lua_thread.create(function()
@@ -78,6 +94,7 @@ function main()
 						if selectedLoop.isStartAwaited == nil then
 							break
 						else
+							while isPlayerMuted do wait(0) end
 							sampSendChat(selectedLoop.t_textToRepeat)
 						end
 					end
